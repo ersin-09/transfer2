@@ -1,0 +1,34 @@
+    # ---------- UI actions ----------
+    def rename_selected(self):
+        sel = self.tv.selection()
+        if not sel:
+            messagebox.showinfo("Bilgi", "Lütfen tabloda en az bir sunucu seçin.")
+            return
+        for iid in sel:
+            vals = self.tv.item(iid, "values")
+            if not vals or len(vals) < 4:
+                continue
+            cur_name, ip, tcp_str, http_str = vals[0], vals[1], vals[2], vals[3]
+            try:
+                http_port = int(http_str)
+            except Exception:
+                http_port = int(self.http_var.get())
+
+            newname = simpledialog.askstring("Ad Değiştir", f"{ip} için yeni ad:", initialvalue=cur_name or "")
+            if newname is None:
+                continue
+
+            ok, msg = self._call_update_name(ip, http_port, self.key_var.get().strip(), newname)
+            if ok:
+                key = f"{ip}:{int(tcp_str) if tcp_str else int(self.tcp_var.get())}"
+                if key in self.discovered:
+                    self.discovered[key]["name"] = newname.strip()
+                    self.discovered[key]["last_seen"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                self._refresh_table()
+                self.status.set(f"{ip} adı → {newname}")
+                if self.save_known_var.get():
+                    self._write_receivers_txt()
+            else:
+                messagebox.showerror("Hata", f"{ip}: {msg}")
+
+    def add_manual_receiver(self):

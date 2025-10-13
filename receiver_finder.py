@@ -312,27 +312,24 @@ class FinderTab(tk.Frame):
     # ---------- UI ----------
     def _make_ui(self):
         list_tab = None
-        wall_tab = None
 
+        # Tek sekme: Bulunanlar içinde doğrudan Açık Cihazlar duvarı
         if self._external_notebook is not None:
             self._tab_notebook = None
-            wall_tab = ttk.Frame(self._external_notebook)
             list_tab = ttk.Frame(self._external_notebook)
             try:
-                self._external_notebook.insert(0, wall_tab, text="🔌 Açık Cihazlar")
-                self._external_notebook.insert(1, list_tab, text="📋 Bulunanlar")
+                self._external_notebook.insert(0, list_tab, text="📋 Bulunanlar")
             except Exception:
-                # bazı tkinter sürümlerinde insert desteklenmeyebilir
-                self._external_notebook.add(wall_tab, text="🔌 Açık Cihazlar")
                 self._external_notebook.add(list_tab, text="📋 Bulunanlar")
         else:
             self._tab_notebook = ttk.Notebook(self)
             self._tab_notebook.pack(fill="both", expand=True)
 
-            wall_tab = ttk.Frame(self._tab_notebook)
             list_tab = ttk.Frame(self._tab_notebook)
-            self._tab_notebook.add(wall_tab, text="🔌 Açık Cihazlar")
             self._tab_notebook.add(list_tab, text="📋 Bulunanlar")
+
+        # Bu çerçeveyi, Notebook seçimleri için saklıyoruz
+        self._top_tab_frame = list_tab
 
         top = tk.Frame(list_tab)
         top.pack(fill="x", padx=10, pady=(10, 6))
@@ -411,16 +408,19 @@ class FinderTab(tk.Frame):
         self.tv.column("tcp", width=70, anchor="center")
         self.tv.column("http", width=70, anchor="center")
         self.tv.column("last_seen", width=160, anchor="center")
-        self.tv.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+        # Listeyi oluşturuyoruz fakat ekrana koymuyoruz (gizli)
 
-        self._wall_container = wall_tab
+        # Duvarı Bulunanlar sekmesinde, ayrı bir holder içinde göster
+        self._wall_holder = tk.Frame(list_tab)
+        self._wall_holder.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+        self._wall_container = self._wall_holder
         if PIL_OK:
             self._ensure_wall_panel()
         else:
             self.wall = None
-            warn = ttk.Frame(wall_tab)
+            warn = ttk.Frame(self._wall_container)
             warn.pack(fill="both", expand=True, padx=20, pady=20)
-            ttk.Label(warn, text="Açık Cihazlar sekmesi için Pillow (PIL) gerekli:\npip install pillow", justify="center").pack(expand=True)
+            ttk.Label(warn, text="Açık Cihazlar için Pillow (PIL) gerekli:\npip install pillow", justify="center").pack(expand=True)
 
         self.status = tk.StringVar(value="Hazır.")
         ttk.Label(self, textvariable=self.status, anchor="w").pack(fill="x", padx=10, pady=(0, 10))
@@ -1578,26 +1578,34 @@ class FinderTab(tk.Frame):
 
     # ---------- tablo yenileme ----------
     def _refresh_table(self):
-        selected = set(self.tv.selection())
-        y0, _ = self.tv.yview()
-        existing = set(self.tv.get_children())
+        # TV mevcut değilse ya da yok olduysa (gizlenmiş/oluşturulmamış), sessizce çık
+        tv = getattr(self, "tv", None)
+        try:
+            if tv is None or not tv.winfo_exists():
+                return
+        except Exception:
+            return
+
+        selected = set(tv.selection())
+        y0, _ = tv.yview()
+        existing = set(tv.get_children())
         keep = set()
 
         for k, m in sorted(self.discovered.items(), key=lambda kv: kv[1].get("name") or ""):
             vals = (m.get("name", ""), m.get("ip", ""), m.get("tcpPort", ""), m.get("httpPort", ""), m.get("last_seen", ""))
-            if self.tv.exists(k):
-                self.tv.item(k, values=vals)
+            if tv.exists(k):
+                tv.item(k, values=vals)
             else:
-                self.tv.insert("", "end", iid=k, values=vals)
+                tv.insert("", "end", iid=k, values=vals)
             keep.add(k)
 
         for iid in (existing - keep):
-            self.tv.delete(iid)
+            tv.delete(iid)
 
-        still = [iid for iid in selected if self.tv.exists(iid)]
+        still = [iid for iid in selected if tv.exists(iid)]
         if still:
-            self.tv.selection_set(still)
-        self.tv.yview_moveto(y0)
+            tv.selection_set(still)
+        tv.yview_moveto(y0)
 
         if self.wall and self.wall.winfo_exists():
             self.wall.refresh_hosts(self.discovered)
@@ -1695,6 +1703,11 @@ class FinderTab(tk.Frame):
 
     def remove_selected(self):
         sel = list(self.tv.selection())
+        if (not sel) and self.wall and self.wall.winfo_exists():
+            try:
+                sel = list(self.wall.get_selection_keys())
+            except Exception:
+                sel = []
         if not sel:
             messagebox.showinfo("Bilgi", "Silmek için lütfen tabloda en az bir satır seçin.")
             return
@@ -1727,12 +1740,15 @@ class FinderTab(tk.Frame):
             return
 
         notebook = self._external_notebook or getattr(self, "_tab_notebook", None)
+        # Artık duvar, Bulunanlar sekmesinin içinde. Notebook varsa o sekmeyi seçelim.
         if notebook:
-            try:
-                notebook.select(self._wall_container)
-                notebook.update_idletasks()
-            except Exception:
-                pass
+            tab = getattr(self, "_top_tab_frame", None)
+            if tab is not None:
+                try:
+                    notebook.select(tab)
+                    notebook.update_idletasks()
+                except Exception:
+                    pass
 
 
 class WallPanel(tk.Frame):
@@ -1752,6 +1768,7 @@ class WallPanel(tk.Frame):
         self._close_label = close_label
         self.key = key
         self.items = {}   # hostKey -> dict(frame, img_label, name_lbl, ip, http, photo)
+        self.selected = set()
 
         # kaydırılabilir alan
         outer = tk.Frame(self)
@@ -1826,19 +1843,24 @@ class WallPanel(tk.Frame):
                     "http": http,
                     "photo": None,
                     "vnc_port": vnc_port,
+                    "ipport_lbl": ipport,
+                    "selected": False,
                 }
                 for widget in (fr, nm, img, ipport):
                     self._bind_wall_item(widget, k)
+                self._apply_item_selected_state(k)
             else:
                 self.items[k]["name_lbl"].config(text=name)
                 self.items[k]["ip"] = ip
                 self.items[k]["http"] = http
                 self.items[k]["vnc_port"] = vnc_port
+                self._apply_item_selected_state(k)
             keep.add(k)
 
         for k in list(existing - keep):
             self.items[k]["frame"].destroy()
             del self.items[k]
+            self.selected.discard(k)
 
         self._regrid()
 
@@ -1862,6 +1884,40 @@ class WallPanel(tk.Frame):
         except Exception:
             pass
         widget.bind("<Double-Button-1>", lambda e, hk=hostKey: self._handle_double_click(hk), add="+")
+        widget.bind("<Button-1>", lambda e, hk=hostKey: self._toggle_select(hk), add="+")
+
+    def _apply_item_selected_state(self, hostKey):
+        item = self.items.get(hostKey)
+        if not item:
+            return
+        sel = hostKey in self.selected
+        bg = "#cde8ff" if sel else None
+        try:
+            item["frame"].configure(bg=bg)
+        except Exception:
+            pass
+        for lbl_key in ("name_lbl", "img_label", "ipport_lbl"):
+            w = item.get(lbl_key)
+            if w is not None:
+                try:
+                    w.configure(bg=bg)
+                except Exception:
+                    pass
+
+    def _toggle_select(self, hostKey):
+        if hostKey in self.selected:
+            self.selected.remove(hostKey)
+        else:
+            self.selected.add(hostKey)
+        self._apply_item_selected_state(hostKey)
+
+    def clear_selection(self):
+        for k in list(self.selected):
+            self._apply_item_selected_state(k)
+        self.selected.clear()
+
+    def get_selection_keys(self):
+        return list(self.selected)
 
     def _resolve_vnc_port(self, meta):
         if meta:
