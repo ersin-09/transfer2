@@ -1,0 +1,11 @@
+{
+  "preferred_tcp_port": 5050,
+  "preferred_http_port": 8088,
+  "listen_mcast_group": "239.0.0.250",
+  "listen_mcast_port": 9999,
+  "progress_port": 6060,
+  "subnets": ["192.168.1", "192.168.63", "192.168.7", "10.206.27"],
+  "tightvnc_viewer_path": "C:\\Program Files\\TightVNC\\tvnviewer.exe",
+  "tightvnc_password": "9874",
+  "tightvnc_port": 5900
+}

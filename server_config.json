@@ -1,0 +1,13 @@
+{
+  "name": "6B",
+  "tcpPort": 5050,
+  "httpPort": 8088,
+  "key": "1234",
+  "announce": {
+    "mcast_group": "239.0.0.250",
+    "mcast_port": 9999,
+    "interval_seconds": 5,
+    "target_subnets": ["10.206.27.0/24"],
+    "target_unicast": ["10.206.27.245"]
+  }
+}
