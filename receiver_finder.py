@@ -373,7 +373,7 @@ class FinderTab(tk.Frame):
         self.btn_listen.pack(side="left")
 
         ttk.Button(btns, text="⚡ Hızlı Tara", command=self.fast_scan).pack(side="left", padx=8)
-        ttk.Button(btns, text="📝 Seçilene Ad Ver", command=self.rename_selected).pack(side="left", padx=(8, 0))
+        ttk.Button(btns, text="📝 Seçilene Ad Ver", command=self.rename_selected_any).pack(side="left", padx=(8, 0))
 
         self.save_known_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(btns, text="Bulunanları alicilar.txt dosyasına yaz", variable=self.save_known_var)\
@@ -1627,6 +1627,71 @@ class FinderTab(tk.Frame):
         self.after(delay_ms, _do)
 
     # ---------- UI actions ----------
+    def rename_selected_any(self):
+        """Seçim tabloya değil de Bulunanlar duvarında yapıldığında da yeniden adlandır."""
+        # Önce tablo seçim var mı bak
+        tv = getattr(self, "tv", None)
+        tv_sel = []
+        try:
+            if tv is not None and tv.winfo_exists():
+                tv_sel = list(tv.selection())
+        except Exception:
+            tv_sel = []
+        if tv_sel:
+            return self.rename_selected()
+
+        # Duvardan seçimleri al
+        wall_sel = []
+        try:
+            if self.wall and self.wall.winfo_exists():
+                wall_sel = list(self.wall.get_selection_keys())
+        except Exception:
+            wall_sel = []
+
+        if not wall_sel:
+            messagebox.showinfo("Bilgi", "Lütfen en az bir sunucu seçin.")
+            return
+
+        for host_key in wall_sel:
+            meta = self.discovered.get(host_key, {})
+            ip = meta.get("ip")
+            tcp = meta.get("tcpPort")
+            http = meta.get("httpPort")
+            name = meta.get("name") or ip or ""
+            if not ip and isinstance(host_key, str) and ":" in host_key:
+                ip = host_key.split(":", 1)[0]
+            if tcp in (None, "") and isinstance(host_key, str) and ":" in host_key:
+                try:
+                    tcp = int(host_key.split(":", 1)[1])
+                except Exception:
+                    tcp = None
+            if http in (None, ""):
+                try:
+                    http = int(self.http_var.get())
+                except Exception:
+                    http = 8088
+
+            if not ip:
+                continue
+            newname = simpledialog.askstring("Ad Değiştir", f"{ip} için yeni ad:", initialvalue=name or "")
+            if newname is None:
+                continue
+            ok, msg = self._call_update_name(ip, int(http), self.key_var.get().strip(), newname)
+            if ok:
+                try:
+                    tcp_val = int(tcp) if tcp not in (None, "") else int(self.tcp_var.get())
+                except Exception:
+                    tcp_val = int(self.tcp_var.get())
+                key = f"{ip}:{tcp_val}"
+                if key in self.discovered:
+                    self.discovered[key]["name"] = newname.strip()
+                    self.discovered[key]["last_seen"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                self._refresh_table()
+                self.status.set(f"{ip} adı → {newname}")
+                if self.save_known_var.get():
+                    self._write_receivers_txt()
+            else:
+                messagebox.showerror("Hata", f"{ip}: {msg}")
     def rename_selected(self):
         sel = self.tv.selection()
         if not sel:
@@ -1782,6 +1847,13 @@ class WallPanel(tk.Frame):
         self.canvas.create_window((0, 0), window=self.grid_host, anchor="nw")
         self.grid_host.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
 
+        # Boş alana tıklanınca seçimleri temizle (sadece duvar alanında)
+        try:
+            self.canvas.bind("<Button-1>", self._on_wall_background_click, add="+")
+            self.grid_host.bind("<Button-1>", self._on_wall_background_click, add="+")
+        except Exception:
+            pass
+
         # üst bar
         top = tk.Frame(self)
         top.pack(fill="x")
@@ -1885,6 +1957,42 @@ class WallPanel(tk.Frame):
             pass
         widget.bind("<Double-Button-1>", lambda e, hk=hostKey: self._handle_double_click(hk), add="+")
         widget.bind("<Button-1>", lambda e, hk=hostKey: self._toggle_select(hk), add="+")
+
+    def _on_wall_background_click(self, event):
+        """Duvar içinde, herhangi bir öğe üzerinde olmayan tıklamada seçimleri temizle."""
+        try:
+            target = self.winfo_containing(event.x_root, event.y_root)
+        except Exception:
+            target = None
+
+        # Hedef bir öğe veya onun alt bileşeni ise, temizleme yapma
+        if target is not None:
+            if self._is_widget_of_any_item(target):
+                return
+
+        # Aksi halde (boş alan), seçimi temizle
+        self.clear_selection()
+
+    def _is_widget_of_any_item(self, widget):
+        """Widget, herhangi bir öğe frame'inin altında mı?"""
+        try:
+            frames = [d.get("frame") for d in self.items.values()]
+        except Exception:
+            frames = []
+        w = widget
+        limit = 0
+        while w is not None and limit < 64:
+            if w in frames:
+                return True
+            # grid_host'a kadar geldiysek ve eşleşme yoksa, öğe değildir
+            if w is self.grid_host:
+                return False
+            try:
+                w = w.master
+            except Exception:
+                break
+            limit += 1
+        return False
 
     def _apply_item_selected_state(self, hostKey):
         item = self.items.get(hostKey)
