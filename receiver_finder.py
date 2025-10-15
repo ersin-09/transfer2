@@ -253,9 +253,16 @@ class FinderTab(tk.Frame):
                 lines.append(f"{ip}\t{name}\t{tcp}\t{http}")
             path = self._txt_path()
             tmp = path + ".tmp"
+            new_content = "\n".join(lines) + "\n"
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    current_content = f.read()
+                if current_content == new_content:
+                    return
+            except FileNotFoundError:
+                current_content = None
             with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-                f.write("\n".join(lines))
-                f.write("\n")
+                f.write(new_content)
             os.replace(tmp, path)
             self.status.set(f"Alıcı listesi yazıldı: {path}")
         except Exception as e:
@@ -296,11 +303,43 @@ class FinderTab(tk.Frame):
     def _update_known_receivers_cache(self):
         entries = self._build_known_receivers()
         current = self.ccfg.get("known_receivers") or []
-        if entries != current:
-            self.ccfg["known_receivers"] = entries
-            self._known_dirty = True
-            return True
-        return False
+        if self._known_lists_equal(entries, current):
+            return False
+        self.ccfg["known_receivers"] = entries
+        self._known_dirty = True
+        return True
+
+    def _known_lists_equal(self, new_entries, old_entries):
+        if len(new_entries) != len(old_entries):
+            return False
+
+        def _normalize(entry):
+            return {
+                "ip": entry.get("ip"),
+                "name": entry.get("name"),
+                "tcpPort": int(entry.get("tcpPort") or 0),
+                "httpPort": int(entry.get("httpPort") or 0),
+            }
+
+        for new, old in zip(new_entries, old_entries):
+            if _normalize(new) != _normalize(old):
+                return False
+
+            new_seen = new.get("last_seen")
+            old_seen = old.get("last_seen")
+            if new_seen == old_seen:
+                continue
+            try:
+                new_ts = time.strptime(new_seen, "%Y-%m-%d %H:%M:%S") if new_seen else None
+                old_ts = time.strptime(old_seen, "%Y-%m-%d %H:%M:%S") if old_seen else None
+            except Exception:
+                return False
+            if not new_ts or not old_ts:
+                return False
+            delta = abs(time.mktime(new_ts) - time.mktime(old_ts))
+            if delta >= 60:
+                return False
+        return True
 
     def _maybe_autosave_known(self, force=False, silent=True):
         if not force and not self._known_dirty:
