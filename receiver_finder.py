@@ -237,11 +237,39 @@ class FinderTab(tk.Frame):
         self.ccfg["tightvnc_port"] = _as_int(self.vnc_port_var.get(), DEFAULT_CLIENT_CFG["tightvnc_port"])
 
     # ---------- TXT ----------
+    def _sort_key(self, meta):
+        name = (meta.get("name") or "").strip()
+        ip = (meta.get("ip") or "").strip()
+
+        def _ip_parts(addr):
+            parts = []
+            for chunk in addr.split("."):
+                try:
+                    parts.append(int(chunk))
+                except Exception:
+                    parts.append(chunk)
+            return tuple(parts)
+
+        def _as_int(value, fallback=0):
+            try:
+                return int(value)
+            except Exception:
+                return fallback
+
+        return (
+            name.casefold(),
+            name,
+            _ip_parts(ip),
+            ip,
+            _as_int(meta.get("tcpPort"), 0),
+            _as_int(meta.get("httpPort"), 0),
+        )
+
     def _write_receivers_txt(self):
         try:
             lines = []
             seen = set()
-            for k, m in sorted(self.discovered.items(), key=lambda kv: (kv[1].get("name") or "", kv[1].get("ip") or "")):
+            for k, m in sorted(self.discovered.items(), key=lambda kv: self._sort_key(kv[1])):
                 ip = m.get("ip", "")
                 name = (m.get("name") or "").strip()
                 tcp = str(m.get("tcpPort", ""))
@@ -275,7 +303,7 @@ class FinderTab(tk.Frame):
     def _build_known_receivers(self):
         entries = []
         seen = set()
-        for _, meta in sorted(self.discovered.items(), key=lambda kv: (kv[1].get("name") or "", kv[1].get("ip") or "")):
+        for _, meta in sorted(self.discovered.items(), key=lambda kv: self._sort_key(kv[1])):
             ip = meta.get("ip")
             if not ip:
                 continue
@@ -1638,7 +1666,7 @@ class FinderTab(tk.Frame):
         existing = set(tv.get_children())
         keep = set()
 
-        for k, m in sorted(self.discovered.items(), key=lambda kv: kv[1].get("name") or ""):
+        for k, m in sorted(self.discovered.items(), key=lambda kv: self._sort_key(kv[1])):
             vals = (m.get("name", ""), m.get("ip", ""), m.get("tcpPort", ""), m.get("httpPort", ""), m.get("last_seen", ""))
             if tv.exists(k):
                 tv.item(k, values=vals)
