@@ -572,11 +572,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -645,11 +644,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -718,11 +716,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -791,11 +788,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -864,11 +860,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -937,11 +932,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -1010,11 +1004,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -1083,11 +1076,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -1156,11 +1148,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -1229,11 +1220,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -1302,11 +1292,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
@@ -1375,11 +1364,10 @@ class FinderTab(tk.Frame):
                 self.discovered[key] = clone
                 changed = True
 
-        for key in list(self.discovered.keys()):
-            meta = self.discovered.get(key)
-            if isinstance(meta, dict) and meta.get("_source") == tag and key not in seen:
-                del self.discovered[key]
-                changed = True
+        # Daha önce gelen girdilerin ekrandan kaybolmaması için, aynı kaynaktan
+        # gelen yeni listede bulunmayan kayıtları artık silmiyoruz. Böylece
+        # kullanıcı daha önce keşfedilen cihazları tabloda görmeye devam eder.
+        # (Gerekirse kullanıcı manuel olarak silebilir.)
 
         if changed:
             self.safe_refresh(delay_ms=80)
