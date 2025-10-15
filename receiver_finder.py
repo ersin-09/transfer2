@@ -352,23 +352,21 @@ class FinderTab(tk.Frame):
     def _make_ui(self):
         list_tab = None
 
-        # Tek sekme: Bulunanlar içinde doğrudan Açık Cihazlar duvarı
+        # Finder sekmesi doğrudan Notebook içinde kullanılıyorsa aynı sekme üzerinde çizim yap
         if self._external_notebook is not None:
             self._tab_notebook = None
-            list_tab = ttk.Frame(self._external_notebook)
-            try:
-                self._external_notebook.insert(0, list_tab, text="📋 Bulunanlar")
-            except Exception:
-                self._external_notebook.add(list_tab, text="📋 Bulunanlar")
+            list_tab = self
+            top_tab = getattr(self, "master", None) or self
         else:
             self._tab_notebook = ttk.Notebook(self)
             self._tab_notebook.pack(fill="both", expand=True)
 
             list_tab = ttk.Frame(self._tab_notebook)
             self._tab_notebook.add(list_tab, text="📋 Bulunanlar")
+            top_tab = list_tab
 
         # Bu çerçeveyi, Notebook seçimleri için saklıyoruz
-        self._top_tab_frame = list_tab
+        self._top_tab_frame = top_tab
 
         top = tk.Frame(list_tab)
         top.pack(fill="x", padx=10, pady=(10, 6))
