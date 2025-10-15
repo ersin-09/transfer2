@@ -253,9 +253,16 @@ class FinderTab(tk.Frame):
                 lines.append(f"{ip}\t{name}\t{tcp}\t{http}")
             path = self._txt_path()
             tmp = path + ".tmp"
+            new_content = "\n".join(lines) + "\n"
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    current_content = f.read()
+                if current_content == new_content:
+                    return
+            except FileNotFoundError:
+                current_content = None
             with open(tmp, "w", encoding="utf-8", newline="\n") as f:
-                f.write("\n".join(lines))
-                f.write("\n")
+                f.write(new_content)
             os.replace(tmp, path)
             self.status.set(f"Alıcı listesi yazıldı: {path}")
         except Exception as e:
@@ -296,11 +303,43 @@ class FinderTab(tk.Frame):
     def _update_known_receivers_cache(self):
         entries = self._build_known_receivers()
         current = self.ccfg.get("known_receivers") or []
-        if entries != current:
-            self.ccfg["known_receivers"] = entries
-            self._known_dirty = True
-            return True
-        return False
+        if self._known_lists_equal(entries, current):
+            return False
+        self.ccfg["known_receivers"] = entries
+        self._known_dirty = True
+        return True
+
+    def _known_lists_equal(self, new_entries, old_entries):
+        if len(new_entries) != len(old_entries):
+            return False
+
+        def _normalize(entry):
+            return {
+                "ip": entry.get("ip"),
+                "name": entry.get("name"),
+                "tcpPort": int(entry.get("tcpPort") or 0),
+                "httpPort": int(entry.get("httpPort") or 0),
+            }
+
+        for new, old in zip(new_entries, old_entries):
+            if _normalize(new) != _normalize(old):
+                return False
+
+            new_seen = new.get("last_seen")
+            old_seen = old.get("last_seen")
+            if new_seen == old_seen:
+                continue
+            try:
+                new_ts = time.strptime(new_seen, "%Y-%m-%d %H:%M:%S") if new_seen else None
+                old_ts = time.strptime(old_seen, "%Y-%m-%d %H:%M:%S") if old_seen else None
+            except Exception:
+                return False
+            if not new_ts or not old_ts:
+                return False
+            delta = abs(time.mktime(new_ts) - time.mktime(old_ts))
+            if delta >= 60:
+                return False
+        return True
 
     def _maybe_autosave_known(self, force=False, silent=True):
         if not force and not self._known_dirty:
@@ -399,8 +438,31 @@ class FinderTab(tk.Frame):
             variable=self.send_unicast_on_scan
         ).pack(side="left", padx=(12, 0))
 
+        body = ttk.Panedwindow(list_tab, orient="vertical")
+        body.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+
+        table_frame = ttk.Frame(body)
+        table_frame.grid_columnconfigure(0, weight=1)
+        table_frame.grid_rowconfigure(0, weight=1)
+        body.add(table_frame, weight=3)
+
         cols = ("name", "ip", "tcp", "http", "last_seen")
-        self.tv = ttk.Treeview(list_tab, columns=cols, show="headings", selectmode="extended")
+        yscroll = ttk.Scrollbar(table_frame, orient="vertical")
+        xscroll = ttk.Scrollbar(table_frame, orient="horizontal")
+        self.tv = ttk.Treeview(
+            table_frame,
+            columns=cols,
+            show="headings",
+            selectmode="extended",
+            yscrollcommand=yscroll.set,
+            xscrollcommand=xscroll.set,
+        )
+        yscroll.config(command=self.tv.yview)
+        xscroll.config(command=self.tv.xview)
+        self.tv.grid(row=0, column=0, sticky="nsew")
+        yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll.grid(row=1, column=0, sticky="ew")
+
         for c, t in zip(cols, ("Ad", "IP", "TCP", "HTTP", "Son Görülme")):
             self.tv.heading(c, text=t)
         self.tv.column("name", width=280, anchor="w")
@@ -408,11 +470,10 @@ class FinderTab(tk.Frame):
         self.tv.column("tcp", width=70, anchor="center")
         self.tv.column("http", width=70, anchor="center")
         self.tv.column("last_seen", width=160, anchor="center")
-        # Listeyi oluşturuyoruz fakat ekrana koymuyoruz (gizli)
 
-        # Duvarı Bulunanlar sekmesinde, ayrı bir holder içinde göster
-        self._wall_holder = tk.Frame(list_tab)
-        self._wall_holder.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+        # Duvarı Bulunanlar sekmesinde, tablo ile paylaşılan bir alt panelde göster
+        self._wall_holder = ttk.Frame(body)
+        body.add(self._wall_holder, weight=2)
         self._wall_container = self._wall_holder
         if PIL_OK:
             self._ensure_wall_panel()
