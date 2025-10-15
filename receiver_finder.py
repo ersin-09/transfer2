@@ -438,8 +438,31 @@ class FinderTab(tk.Frame):
             variable=self.send_unicast_on_scan
         ).pack(side="left", padx=(12, 0))
 
+        body = ttk.Panedwindow(list_tab, orient="vertical")
+        body.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+
+        table_frame = ttk.Frame(body)
+        table_frame.grid_columnconfigure(0, weight=1)
+        table_frame.grid_rowconfigure(0, weight=1)
+        body.add(table_frame, weight=3)
+
         cols = ("name", "ip", "tcp", "http", "last_seen")
-        self.tv = ttk.Treeview(list_tab, columns=cols, show="headings", selectmode="extended")
+        yscroll = ttk.Scrollbar(table_frame, orient="vertical")
+        xscroll = ttk.Scrollbar(table_frame, orient="horizontal")
+        self.tv = ttk.Treeview(
+            table_frame,
+            columns=cols,
+            show="headings",
+            selectmode="extended",
+            yscrollcommand=yscroll.set,
+            xscrollcommand=xscroll.set,
+        )
+        yscroll.config(command=self.tv.yview)
+        xscroll.config(command=self.tv.xview)
+        self.tv.grid(row=0, column=0, sticky="nsew")
+        yscroll.grid(row=0, column=1, sticky="ns")
+        xscroll.grid(row=1, column=0, sticky="ew")
+
         for c, t in zip(cols, ("Ad", "IP", "TCP", "HTTP", "Son Görülme")):
             self.tv.heading(c, text=t)
         self.tv.column("name", width=280, anchor="w")
@@ -447,11 +470,10 @@ class FinderTab(tk.Frame):
         self.tv.column("tcp", width=70, anchor="center")
         self.tv.column("http", width=70, anchor="center")
         self.tv.column("last_seen", width=160, anchor="center")
-        # Listeyi oluşturuyoruz fakat ekrana koymuyoruz (gizli)
 
-        # Duvarı Bulunanlar sekmesinde, ayrı bir holder içinde göster
-        self._wall_holder = tk.Frame(list_tab)
-        self._wall_holder.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+        # Duvarı Bulunanlar sekmesinde, tablo ile paylaşılan bir alt panelde göster
+        self._wall_holder = ttk.Frame(body)
+        body.add(self._wall_holder, weight=2)
         self._wall_container = self._wall_holder
         if PIL_OK:
             self._ensure_wall_panel()
