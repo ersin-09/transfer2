@@ -81,7 +81,13 @@ func shotHandler(w http.ResponseWriter, r *http.Request) {
 		fmtStr = "jpg"
 	}
 
-	img, err := captureAllScreens()
+	displays, err := parseDisplayParam(r.URL.Query().Get("display"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	img, err := captureScreens(displays)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -102,20 +108,67 @@ func shotHandler(w http.ResponseWriter, r *http.Request) {
 // --- screenshot helpers (TEK KOPYA OLSUN) ---
 var lastShotUnix int64 // basit rate-limit
 
-func captureAllScreens() (image.Image, error) {
-	n := screenshot.NumActiveDisplays()
-	if n <= 0 {
+func parseDisplayParam(raw string) ([]int, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	parts := strings.Split(raw, ",")
+	indexes := make([]int, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		idx, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, fmt.Errorf("invalid display index %q", part)
+		}
+		indexes = append(indexes, idx)
+	}
+	if len(indexes) == 0 {
+		return nil, fmt.Errorf("no display index provided")
+	}
+	return indexes, nil
+}
+
+func captureScreens(indexes []int) (image.Image, error) {
+	total := screenshot.NumActiveDisplays()
+	if total <= 0 {
 		return nil, fmt.Errorf("no active display")
 	}
+
+	if len(indexes) == 0 {
+		indexes = make([]int, total)
+		for i := range indexes {
+			indexes[i] = i
+		}
+	} else {
+		uniq := indexes[:0]
+		seen := make(map[int]struct{}, len(indexes))
+		for _, idx := range indexes {
+			if idx < 0 || idx >= total {
+				return nil, fmt.Errorf("display index %d out of range (0-%d)", idx, total-1)
+			}
+			if _, ok := seen[idx]; ok {
+				continue
+			}
+			seen[idx] = struct{}{}
+			uniq = append(uniq, idx)
+		}
+		indexes = uniq
+	}
+
 	union := image.Rect(0, 0, 0, 0)
-	bounds := make([]image.Rectangle, 0, n)
-	for i := 0; i < n; i++ {
-		b := screenshot.GetDisplayBounds(i)
+	bounds := make([]image.Rectangle, 0, len(indexes))
+	for _, idx := range indexes {
+		b := screenshot.GetDisplayBounds(idx)
 		bounds = append(bounds, b)
 		union = union.Union(b)
 	}
+
 	dst := image.NewRGBA(union)
-	for i := 0; i < n; i++ {
+	for i, idx := range indexes {
 		b := bounds[i]
 		img, err := screenshot.CaptureRect(b)
 		if err != nil {
@@ -123,6 +176,7 @@ func captureAllScreens() (image.Image, error) {
 		}
 		draw.Draw(dst, b, img, image.Point{}, draw.Src)
 	}
+
 	return dst, nil
 }
 
